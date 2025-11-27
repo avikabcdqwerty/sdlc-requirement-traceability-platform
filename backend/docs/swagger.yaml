@@ -1,0 +1,482 @@
+openapi: 3.0.3
+info:
+  title: SDLC Requirement Traceability Platform API
+  description: >
+    REST API for end-to-end traceability of requirements across SDLC phases.
+    Provides endpoints for requirements, traceability matrix, reporting, artifact linking, audit logging, and integrations.
+  version: 1.0.0
+  contact:
+    name: SDLC Traceability Team
+    email: support@sdlc-traceability.example.com
+servers:
+  - url: http://localhost:4000/api
+    description: Local development server
+
+tags:
+  - name: Requirements
+    description: Manage requirements and their SDLC links
+  - name: Traceability
+    description: Traceability matrix and reporting endpoints
+  - name: Integration
+    description: External SDLC tool integrations
+  - name: AuditLog
+    description: Audit logging and compliance endpoints
+  - name: Auth
+    description: Authentication and RBAC endpoints
+
+paths:
+  /requirements:
+    get:
+      tags: [Requirements]
+      summary: List all requirements
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of requirements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requirements:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Requirement'
+    post:
+      tags: [Requirements]
+      summary: Create a new requirement
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequirementInput'
+      responses:
+        '201':
+          description: Requirement created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Requirement'
+
+  /requirements/{id}:
+    get:
+      tags: [Requirements]
+      summary: Get a requirement by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Requirement details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Requirement'
+        '404':
+          description: Requirement not found
+
+    patch:
+      tags: [Requirements]
+      summary: Update a requirement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequirementInput'
+      responses:
+        '200':
+          description: Requirement updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Requirement'
+        '404':
+          description: Requirement not found
+
+  /traceability/matrix:
+    get:
+      tags: [Traceability]
+      summary: Get the full traceability matrix
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Traceability matrix
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matrix:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequirementTraceability'
+
+  /traceability/requirement/{id}:
+    get:
+      tags: [Traceability]
+      summary: Get traceability details for a specific requirement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Requirement traceability details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequirementTraceability'
+        '404':
+          description: Requirement not found
+
+    post:
+      tags: [Traceability]
+      summary: Link SDLC artifacts to a requirement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArtifactLinkInput'
+      responses:
+        '200':
+          description: Artifacts linked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequirementTraceability'
+        '404':
+          description: Requirement not found
+
+  /traceability/report:
+    get:
+      tags: [Traceability]
+      summary: Generate traceability report
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Traceability report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequirementReport'
+
+  /traceability/requirement/{id}/flags:
+    patch:
+      tags: [Traceability]
+      summary: Update failed test or deployment rollback flags for a requirement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hasFailedTests:
+                  type: boolean
+                hasDeploymentRollback:
+                  type: boolean
+      responses:
+        '200':
+          description: Flags updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequirementTraceability'
+        '404':
+          description: Requirement not found
+
+  /auditlog/export:
+    get:
+      tags: [AuditLog]
+      summary: Export audit logs for compliance reviews
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, csv]
+      responses:
+        '200':
+          description: Exported audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: string
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and obtain authentication token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Invalid credentials
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Requirement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+        status:
+          type: string
+        userStoryIds:
+          type: array
+          items:
+            type: string
+        taskIds:
+          type: array
+          items:
+            type: string
+        testCaseIds:
+          type: array
+          items:
+            type: string
+        codeCommitIds:
+          type: array
+          items:
+            type: string
+        deploymentIds:
+          type: array
+          items:
+            type: string
+        hasFailedTests:
+          type: boolean
+        hasDeploymentRollback:
+          type: boolean
+        createdBy:
+          type: string
+        updatedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RequirementInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+        status:
+          type: string
+        userStoryIds:
+          type: array
+          items:
+            type: string
+        taskIds:
+          type: array
+          items:
+            type: string
+        testCaseIds:
+          type: array
+          items:
+            type: string
+        codeCommitIds:
+          type: array
+          items:
+            type: string
+        deploymentIds:
+          type: array
+          items:
+            type: string
+
+    ArtifactLinkInput:
+      type: object
+      properties:
+        userStoryIds:
+          type: array
+          items:
+            type: string
+        taskIds:
+          type: array
+          items:
+            type: string
+        testCaseIds:
+          type: array
+          items:
+            type: string
+        codeCommitIds:
+          type: array
+          items:
+            type: string
+        deploymentIds:
+          type: array
+          items:
+            type: string
+
+    RequirementTraceability:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        userStories:
+          type: array
+          items:
+            type: object
+        tasks:
+          type: array
+          items:
+            type: object
+        testCases:
+          type: array
+          items:
+            type: object
+        codeCommits:
+          type: array
+          items:
+            type: object
+        deployments:
+          type: array
+          items:
+            type: object
+        hasFailedTests:
+          type: boolean
+        hasDeploymentRollback:
+          type: boolean
+        createdBy:
+          type: string
+        updatedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RequirementReport:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        hasFailedTests:
+          type: boolean
+        hasDeploymentRollback:
+          type: boolean
+        testResults:
+          type: array
+          items:
+            type: object
+        deploymentStatus:
+          type: array
+          items:
+            type: object
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+        details:
+          type: string
+        ip:
+          type: string
+        timestamp:
+          type: string
+          format: date-time

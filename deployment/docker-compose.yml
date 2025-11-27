@@ -1,0 +1,76 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: sdlc-traceability-backend
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=trace_user
+      - DB_PASSWORD=trace_pass
+      - DB_NAME=traceability
+      - JIRA_API_URL=${JIRA_API_URL}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN}
+      - JIRA_BASE_URL=${JIRA_BASE_URL}
+      - GITHUB_API_URL=${GITHUB_API_URL}
+      - GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+      - GITHUB_OWNER=${GITHUB_OWNER}
+      - GITHUB_REPO=${GITHUB_REPO}
+      - JENKINS_API_URL=${JENKINS_API_URL}
+      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN}
+      - JENKINS_BASE_URL=${JENKINS_BASE_URL}
+      - JENKINS_JOB_NAME=${JENKINS_JOB_NAME}
+      - SESSION_SECRET=${SESSION_SECRET}
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+    networks:
+      - sdlc-net
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: sdlc-traceability-frontend
+    restart: unless-stopped
+    env_file:
+      - ../frontend/.env
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://backend:4000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - sdlc-net
+
+  db:
+    image: postgres:15-alpine
+    container_name: sdlc-traceability-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trace_user
+      POSTGRES_PASSWORD: trace_pass
+      POSTGRES_DB: traceability
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - sdlc-net
+
+volumes:
+  db_data:
+
+networks:
+  sdlc-net:
+    driver: bridge
